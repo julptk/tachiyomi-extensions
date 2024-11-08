@@ -59,12 +59,17 @@ jobs:
           java-version: 11
           distribution: adopt
 
-      - name: Generate multisrc extensions
-        if: ${{ github.event.inputs.ismultisrc == 'true' }}
-        uses: gradle/gradle-build-action@v2.3.3
+      - name: Generate sources from the multi-source library
+        uses: eskatos/gradle-command-action@v1
+        env:
+          CI_PUSH: "true"
         with:
+          build-root-directory: master
+          wrapper-directory: master
           arguments: :multisrc:multisrcGenerators
-          gradle-home-cache-cleanup: true
+          wrapper-cache-enabled: true
+          dependencies-cache-enabled: true
+          configuration-cache-enabled: true
 
       - name: Build APK
         uses: gradle/gradle-build-action@v2.3.3
