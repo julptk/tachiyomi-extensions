@@ -5,18 +5,15 @@ on:
     inputs:
       lang:
         description: Extension language (en, ar, es, pt...)
+        default: 'id'
         required: true
       extension:
         description: Target extension name
+        default: 'komikav'
         required: true
-      ismultisrc:
-        type: boolean
-        description: Its a multisrc extension
-        default: false
-        required: false
       git-repo:
-        description: Git repo (Optional, defaults to <your name>/aniyomi-extensions
-        default: ''
+        description: Git repo (Optional, defaults to <your name>/aniyomi-extensions)
+        default: 'julptk/tachiyomi-extensions'
         required: false
       git-ref:
         description: Git Ref (Optional, defaults to master)
@@ -24,9 +21,7 @@ on:
         required: false
 
 env:
-  BASEPATH: src
   EXTPATH: ${{ github.event.inputs.lang }}/${{ github.event.inputs.extension }}
-  BASESLUG: individual
   EXTSLUG: ${{ github.event.inputs.lang }}:${{ github.event.inputs.extension }}
   REPO: ${{ github.event.inputs.git-repo }}
   CI_MODULE_GEN: true
@@ -37,16 +32,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check inputs
+        if: env.REPO == ''
         run: |
           set -e
-          if [[ -z "${{ env.REPO }}" ]]; then
-            echo "REPO=${{ github.repository_owner }}/aniyomi-extensions" >> $GITHUB_ENV
-          fi
-          if [[ ${{ github.event.inputs.ismultisrc }} != false ]]; then
-            echo "BASEPATH=generated-src" >> $GITHUB_ENV
-            echo "BASESLUG=multisrc" >> $GITHUB_ENV
-          fi
-      - name: Clone Repository (Latest)
+          echo "REPO=${{ github.repository_owner }}/aniyomi-extensions" >> $GITHUB_ENV
+
+      - name: Clone Repository
         uses: actions/checkout@v3
         with:
           repository: ${{ env.REPO }}
@@ -59,22 +50,14 @@ jobs:
           java-version: 11
           distribution: adopt
 
-      - name: Generate multisrc extensions
-        if: ${{ github.event.inputs.ismultisrc == 'true' }}
-        uses: gradle/gradle-build-action@v2.3.3
-        with:
-          arguments: :multisrc:generateExtensions
-          gradle-home-cache-cleanup: true
-
       - name: Build APK
-        uses: gradle/gradle-build-action@v2.3.3
-        with:
-          arguments: :extensions:${{ env.BASESLUG }}:${{ env.EXTSLUG }}:assembleDebug
-          gradle-home-cache-cleanup: true
+        env:
+          CI: false
+        run: ./gradlew all-madara:assembleDebug
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{github.event.inputs.lang}}-${{ github.event.inputs.extension }}
-          path: "${{ env.BASEPATH }}/${{ env.EXTPATH }}/build/outputs/apk/debug/*.apk"
+          name: ${{ github.event.inputs.lang }}-${{ github.event.inputs.extension }}
+          path: "src/${{ env.EXTPATH }}/build/outputs/apk/debug/*.apk"
           retention-days: 1
