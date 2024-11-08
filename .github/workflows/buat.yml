@@ -53,7 +53,7 @@ jobs:
       - name: Build APK
         env:
           CI: false
-        run: ./gradlew all-madara:assembleDebug
+        run: ./gradlew multisrc:id-komikav:assembleDebug
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
